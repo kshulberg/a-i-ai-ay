@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Day at the Lake</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Trebuchet MS", "Comic Sans MS", Arial, sans-serif;
+    background: linear-gradient(#9fd0f5 0%, #d8efff 58%, #b8def2 100%);
+    color: #111;
+    display: flex;
+    justify-content: center;
+    padding: 28px 18px 60px;
+  }
+  .page {
+    width: min(940px, 100%);
+    min-height: 650px;
+    padding: 24px 54px 48px;
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 85% 88%, rgba(255,255,255,.65), transparent 22%),
+      linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.38));
+    box-shadow: 0 12px 35px rgba(37, 93, 132, .18);
+    position: relative;
+    overflow: hidden;
+  }
+  .page::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 115px;
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(83,166,205,.22));
+    pointer-events: none;
+  }
+  h1 {
+    text-align: center;
+    font-size: clamp(38px, 6vw, 64px);
+    margin: 8px 0 28px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .instructions {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #31536a;
+    margin: -15px 0 28px;
+  }
+  .story {
+    position: relative;
+    z-index: 2;
+    font-size: clamp(23px, 3.3vw, 35px);
+    line-height: 1.65;
+    font-weight: 600;
+    letter-spacing: .4px;
+  }
+  .line { margin: 0 0 14px; }
+  .word {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 7px;
+    padding: 0 2px;
+    transition: background .15s ease, transform .15s ease;
+    outline: none;
+  }
+  .word:hover, .word:focus, .word.active {
+    background: rgba(255,255,255,.68);
+    transform: translateY(-1px);
+  }
+  .tooltip {
+    position: fixed;
+    z-index: 9999;
+    display: none;
+    background: rgba(18, 43, 59, .96);
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.3;
+    padding: 9px 12px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    pointer-events: none;
+    max-width: 260px;
+    text-align: center;
+  }
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    .page { padding: 20px 22px 42px; border-radius: 14px; }
+    .story { line-height: 1.7; }
+    .instructions { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>A Day at the Lake</h1>
+  <div class="instructions">Hover over a word to hear it and see the Russian translation. On a phone, tap the word.</div>
+  <section class="story" id="story"></section>
+</main>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const lines = [
+  ["Kate","and","Sam","go","to","the","lake","on","a","day."],
+  ["Kate","has","a","black","cat,","and","Sam","has","a","pig."],
+  ["They","sit","on","the","grass","and","play","a","game."],
+  ["A","train","is","next","to","the","lake."],
+  ["Sam","has","a","fish","in","a","bag."],
+  ["Kate","and","Sam","play","at","the","lake."],
+  ["At","the","end","of","the","day,","they","go","home."]
+];
+
+const translations = {
+  "kate":"Кейт", "sam":"Сэм", "and":"и", "go":"идти / ехать", "to":"к / в; частица to",
+  "the":"определённый артикль", "lake":"озеро", "on":"на", "a":"неопределённый артикль",
+  "day":"день", "has":"имеет / у него (неё) есть", "black":"чёрный", "cat":"кот / кошка",
+  "pig":"свинья / поросёнок", "they":"они", "sit":"сидеть", "grass":"трава", "play":"играть",
+  "game":"игра", "train":"поезд", "is":"есть / является; форма глагола to be", "next":"следующий; рядом (в next to)",
+  "fish":"рыба", "in":"в / внутри", "bag":"сумка / пакет", "at":"у / в / на", "end":"конец",
+  "of":"из / от; предлог принадлежности", "home":"домой / дома"
+};
+
+const story = document.getElementById('story');
+const tooltip = document.getElementById('tooltip');
+let lastSpoken = '';
+let lastSpokenAt = 0;
+
+function clean(word) { return word.toLowerCase().replace(/[^a-z']/g, ''); }
+function speak(word) {
+  const now = Date.now();
+  const spoken = word.replace(/[.,!?;:]/g, '');
+  if (spoken === lastSpoken && now - lastSpokenAt < 500) return;
+  lastSpoken = spoken; lastSpokenAt = now;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(spoken);
+  u.lang = 'en-US';
+  u.rate = 0.82;
+  const voices = speechSynthesis.getVoices();
+  const us = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en-US'));
+  if (us) u.voice = us;
+  speechSynthesis.speak(u);
+}
+function showTip(el, word) {
+  const key = clean(word);
+  tooltip.textContent = translations[key] || '—';
+  tooltip.style.display = 'block';
+  const r = el.getBoundingClientRect();
+  const tr = tooltip.getBoundingClientRect();
+  let left = r.left + r.width / 2 - tr.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+  let top = r.top - tr.height - 9;
+  if (top < 8) top = r.bottom + 9;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+function hideTip() { tooltip.style.display = 'none'; }
+
+lines.forEach(words => {
+  const p = document.createElement('p');
+  p.className = 'line';
+  words.forEach((word, i) => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.tabIndex = 0;
+    span.textContent = word;
+    span.setAttribute('aria-label', `${word}: ${translations[clean(word)] || ''}`);
+    span.addEventListener('mouseenter', () => { showTip(span, word); speak(word); });
+    span.addEventListener('mouseleave', hideTip);
+    span.addEventListener('focus', () => { showTip(span, word); speak(word); });
+    span.addEventListener('blur', hideTip);
+    span.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.word.active').forEach(x => x.classList.remove('active'));
+      span.classList.add('active');
+      showTip(span, word); speak(word);
+    });
+    p.appendChild(span);
+    if (i < words.length - 1) p.appendChild(document.createTextNode(' '));
+  });
+  story.appendChild(p);
+});
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.word.active').forEach(x => x.classList.remove('active'));
+  hideTip();
+});
+window.addEventListener('scroll', hideTip, {passive:true});
+</script>
+</body>
+</html>
